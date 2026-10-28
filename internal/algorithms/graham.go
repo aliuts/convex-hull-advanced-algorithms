@@ -10,6 +10,17 @@ func (GrahamScan) Compute(points []geometry.Point) Result {
 	return Result{Algorithm: "graham_scan", Status: StatusNotImplemented, Message: "Graham Scan is not implemented yet."}
 }
 
-func crossProduct(o, a, b geometry.Point) float64 {
+func CrossProduct(o, a, b geometry.Point) float64 {
 	return (a.X-o.X)*(b.Y-o.Y) - (a.Y-o.Y)*(b.X-o.X)
+}
+
+func FindPivot(points []geometry.Point) geometry.Point {
+	pivot := points[0]
+
+	for _, p := range points[1:] {
+		if p.Y < pivot.Y || (p.Y == pivot.Y && p.X < pivot.X) {
+			pivot = p
+		}
+	}
+	return pivot
 }
