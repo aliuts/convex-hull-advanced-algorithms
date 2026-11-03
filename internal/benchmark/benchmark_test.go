@@ -9,7 +9,7 @@ import (
 
 func TestRunReportsImplementedAndNotImplementedAlgorithms(t *testing.T) {
 	r := Run([]geometry.Point{{X: 0, Y: 0}}, algorithms.All())
-	if len(r.Results) != 3 {
+	if len(r.Results) != len(algorithms.All()) {
 		t.Fatalf("got %d results", len(r.Results))
 	}
 	for _, e := range r.Results {
@@ -17,9 +17,9 @@ func TestRunReportsImplementedAndNotImplementedAlgorithms(t *testing.T) {
 			t.Fatalf("unexpected result: %+v", e)
 		}
 		switch e.Result.Algorithm {
-		case "graham_scan":
+		case "graham_scan", "chan":
 			if e.Result.Status != algorithms.StatusOK || len(e.Result.Hull) != 1 {
-				t.Fatalf("unexpected Graham scan result: %+v", e.Result)
+				t.Fatalf("unexpected %s result: %+v", e.Result.Algorithm, e.Result)
 			}
 		default:
 			if e.Result.Status != algorithms.StatusNotImplemented || len(e.Result.Hull) != 0 {
