@@ -1,6 +1,6 @@
 # HullLab — Convex Hull Algorithm Comparison
 
-A Go-backed, browser-based workspace for exploring and benchmarking Graham Scan, Jarvis March (Gift Wrapping), and QuickHull. The server and UI are operational; the three algorithm implementations intentionally remain stubs and return an explicit `not_implemented` status.
+A Go-backed, browser-based workspace for exploring and benchmarking Graham Scan, Jarvis March (Gift Wrapping), and QuickHull. Graham Scan and QuickHull are implemented; Jarvis March is still a stub that returns an explicit `not_implemented` status.
 
 ## Requirements
 
@@ -45,7 +45,7 @@ Algorithm identifiers are `graham_scan`, `jarvis_march`, and `quickhull`; use `a
 
 ```text
 cmd/server/            HTTP server entry point
-internal/algorithms/   Shared interface, registry, and independent algorithm stubs
+internal/algorithms/   Shared interface, registry, and algorithm implementations
 internal/geometry/     Point and hull types
 internal/api/           HTTP routing, validation, and JSON endpoints
 internal/benchmark/     Timing and repeated multi-size trial orchestration
@@ -56,6 +56,17 @@ web/                    Responsive frontend assets served by Go
 ## Adding an algorithm
 
 Implement `algorithms.ConvexHullAlgorithm` in its own file. `Compute` should return the shared `algorithms.Result` with `Status: algorithms.StatusOK` and the hull points in boundary order (without repeating the first point). Register the type in `algorithms.All()`. API selection, comparison, rendering, and benchmark reporting use the shared interface and result contract. Keep input correctness validation in separate tests/validation paths rather than including it in timed computation.
+
+## Tests and benchmarks
+
+```sh
+go test ./...                    # all tests, including wall-clock timing checks
+go test -short ./...             # skip the timing checks (for noisy machines/CI)
+go test ./internal/algorithms -v -run QuickHull   # print the efficiency measurements
+go test ./internal/algorithms -run '^$' -bench . -benchmem   # QuickHull vs Graham scan benchmarks
+```
+
+QuickHull's efficiency tests count orientation tests (cross products) rather than relying only on time, so they are exact and repeatable. They check near-linear work on uniform data, O(n log n) when every point is on the hull, O(n²) on a crafted worst case, and a fixed handful of allocations regardless of input size. `hull_helpers_test.go` holds a hull validator and a reference algorithm that other implementations can reuse.
 
 ## GitHub setup
 

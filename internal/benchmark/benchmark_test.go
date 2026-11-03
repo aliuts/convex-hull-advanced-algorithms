@@ -17,9 +17,9 @@ func TestRunReportsImplementedAndNotImplementedAlgorithms(t *testing.T) {
 			t.Fatalf("unexpected result: %+v", e)
 		}
 		switch e.Result.Algorithm {
-		case "graham_scan":
+		case "graham_scan", "quickhull":
 			if e.Result.Status != algorithms.StatusOK || len(e.Result.Hull) != 1 {
-				t.Fatalf("unexpected Graham scan result: %+v", e.Result)
+				t.Fatalf("unexpected %s result: %+v", e.Result.Algorithm, e.Result)
 			}
 		default:
 			if e.Result.Status != algorithms.StatusNotImplemented || len(e.Result.Hull) != 0 {
