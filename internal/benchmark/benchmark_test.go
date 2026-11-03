@@ -17,7 +17,7 @@ func TestRunReportsImplementedAndNotImplementedAlgorithms(t *testing.T) {
 			t.Fatalf("unexpected result: %+v", e)
 		}
 		switch e.Result.Algorithm {
-		case "graham_scan", "chan":
+		case "graham_scan", "jarvis_march", "chan":
 			if e.Result.Status != algorithms.StatusOK || len(e.Result.Hull) != 1 {
 				t.Fatalf("unexpected %s result: %+v", e.Result.Algorithm, e.Result)
 			}

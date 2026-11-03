@@ -1,170 +1,21 @@
 package algorithms
 
 import (
-	"fmt"
 	"math"
 	"math/rand"
-	"reflect"
 	"testing"
-	"time"
 
-	"github.com/ali/convex-hull-advanced-algorithms/internal/dataset"
 	"github.com/ali/convex-hull-advanced-algorithms/internal/geometry"
 )
 
-// ---------------------------------------------------------------------------
-// Correctness: hand-made cases with known answers
-// ---------------------------------------------------------------------------
-
-func TestChanKnownCases(t *testing.T) {
-	cases := []struct {
-		name  string
-		input []geometry.Point
-		want  []geometry.Point
-	}{
-		{"empty", nil, []geometry.Point{}},
-		{"single point", pts(3, 4), pts(3, 4)},
-		{"same point repeated", pts(2, 2, 2, 2, 2, 2), pts(2, 2)},
-		{"two points", pts(5, 5, 1, 1), pts(1, 1, 5, 5)},
-		{"two points with duplicates", pts(5, 5, 1, 1, 5, 5, 1, 1), pts(1, 1, 5, 5)},
-		{"horizontal line", pts(3, 0, 1, 0, 4, 0, 2, 0), pts(1, 0, 4, 0)},
-		{"vertical line", pts(0, 3, 0, 1, 0, 4, 0, 2), pts(0, 1, 0, 4)},
-		{"diagonal line", pts(2, 2, 0, 0, 3, 3, 1, 1), pts(0, 0, 3, 3)},
-		{"triangle", pts(0, 0, 4, 0, 2, 3), pts(0, 0, 4, 0, 2, 3)},
-		{"clockwise triangle input", pts(2, 3, 4, 0, 0, 0), pts(0, 0, 4, 0, 2, 3)},
-		{
-			"square with interior points",
-			pts(0, 0, 10, 0, 10, 10, 0, 10, 5, 5, 2, 7, 8, 1),
-			pts(0, 0, 10, 0, 10, 10, 0, 10),
-		},
-		{
-			"square with points on every edge",
-			pts(0, 0, 5, 0, 10, 0, 10, 5, 10, 10, 5, 10, 0, 10, 0, 5),
-			pts(0, 0, 10, 0, 10, 10, 0, 10),
-		},
-		{
-			"square with duplicated corners",
-			pts(0, 0, 0, 0, 10, 0, 10, 0, 10, 10, 0, 10, 0, 10),
-			pts(0, 0, 10, 0, 10, 10, 0, 10),
-		},
-		{
-			"several points share min and max x",
-			pts(0, 0, 0, 5, 0, 10, 10, 0, 10, 5, 10, 10, 5, 5),
-			pts(0, 0, 10, 0, 10, 10, 0, 10),
-		},
-		{
-			"three points tie for the lowest y",
-			pts(6, 0, 2, 0, 4, 0, 4, 5),
-			pts(2, 0, 6, 0, 4, 5),
-		},
-		{
-			"negative coordinates",
-			pts(-5, -5, 5, -5, 5, 5, -5, 5, 0, 0, -1, 2),
-			pts(-5, -5, 5, -5, 5, 5, -5, 5),
-		},
-		{
-			"hexagon",
-			pts(2, 0, 4, 0, 6, 2, 4, 4, 2, 4, 0, 2, 3, 2),
-			pts(2, 0, 4, 0, 6, 2, 4, 4, 2, 4, 0, 2),
-		},
-		{
-			// 8 vertices: more than the first guess m = 4, so a second round is needed.
-			"octagon needs a second round",
-			pts(1, 0, 2, 0, 3, 1, 3, 2, 2, 3, 1, 3, 0, 2, 0, 1, 1.5, 1.5, 1, 1, 2, 2, 1, 2, 2, 1),
-			pts(1, 0, 2, 0, 3, 1, 3, 2, 2, 3, 1, 3, 0, 2, 0, 1),
-		},
-		{
-			"large coordinates",
-			pts(1e9, 1e9, -1e9, 1e9, -1e9, -1e9, 1e9, -1e9, 0, 0),
-			pts(-1e9, -1e9, 1e9, -1e9, 1e9, 1e9, -1e9, 1e9),
-		},
-		{
-			"tiny coordinates",
-			pts(0, 0, 1e-9, 0, 1e-9, 1e-9, 0, 1e-9, 5e-10, 5e-10),
-			pts(0, 0, 1e-9, 0, 1e-9, 1e-9, 0, 1e-9),
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			got := ChansAlgorithm{}.Compute(tc.input)
-			if got.Status != StatusOK || got.Algorithm != "chan" {
-				t.Fatalf("unexpected result metadata: %+v", got)
-			}
-			if got.Hull == nil {
-				t.Fatal("hull must be non-nil so it serialises as [] rather than being omitted")
-			}
-			if !reflect.DeepEqual(got.Hull, tc.want) {
-				t.Fatalf("hull = %v, want %v", got.Hull, tc.want)
-			}
-			assertValidHull(t, tc.input, got.Hull)
-		})
-	}
+// Shared correctness checks (known cases, random inputs vs reference, dataset kinds, …).
+func TestChanContract(t *testing.T) {
+	testHullContract(t, ChansAlgorithm{}, 5000)
 }
 
 func TestChanName(t *testing.T) {
 	if (ChansAlgorithm{}).Name() != "chan" {
 		t.Fatal("name must match the API identifier")
-	}
-	found := false
-	for _, a := range All() {
-		found = found || a.Name() == "chan"
-	}
-	if !found {
-		t.Fatal("ChansAlgorithm is not registered in All()")
-	}
-}
-
-func TestChanDoesNotModifyInput(t *testing.T) {
-	input := uniformSquare(5000, 1)
-	snapshot := append([]geometry.Point(nil), input...)
-	ChansAlgorithm{}.Compute(input)
-	if !reflect.DeepEqual(input, snapshot) {
-		t.Fatal("Compute reordered or changed its input slice")
-	}
-}
-
-func TestChanIsDeterministic(t *testing.T) {
-	input := uniformDisk(2000, 9)
-	first := ChansAlgorithm{}.Compute(input).Hull
-	for i := 0; i < 5; i++ {
-		if !sameHull(first, ChansAlgorithm{}.Compute(input).Hull) {
-			t.Fatal("same input produced different hulls")
-		}
-	}
-}
-
-// Input order decides which points share a group, but must not change the hull.
-func TestChanIgnoresInputOrder(t *testing.T) {
-	input := uniformDisk(3000, 3)
-	want := ChansAlgorithm{}.Compute(input).Hull
-	r := rand.New(rand.NewSource(4))
-	for i := 0; i < 10; i++ {
-		shuffled := append([]geometry.Point(nil), input...)
-		r.Shuffle(len(shuffled), func(a, b int) { shuffled[a], shuffled[b] = shuffled[b], shuffled[a] })
-		if got := (ChansAlgorithm{}).Compute(shuffled).Hull; !sameHull(got, want) {
-			t.Fatalf("shuffle %d changed the hull", i)
-		}
-	}
-}
-
-func TestChanTranslationAndScaling(t *testing.T) {
-	input := pts(0, 0, 8, 1, 9, 7, 3, 9, -1, 4, 4, 4, 2, 2, 6, 8, 1, 7)
-	base := ChansAlgorithm{}.Compute(input).Hull
-	for _, tf := range []struct{ scale, dx, dy float64 }{{1, 100, -50}, {2, 0, 0}, {0.5, 3, 3}, {16, -1000, 1000}} {
-		moved := make([]geometry.Point, len(input))
-		for i, p := range input {
-			moved[i] = geometry.Point{X: p.X*tf.scale + tf.dx, Y: p.Y*tf.scale + tf.dy}
-		}
-		got := ChansAlgorithm{}.Compute(moved).Hull
-		if len(got) != len(base) {
-			t.Fatalf("transform %+v changed hull size: %d vs %d", tf, len(got), len(base))
-		}
-		for i, p := range base {
-			if want := (geometry.Point{X: p.X*tf.scale + tf.dx, Y: p.Y*tf.scale + tf.dy}); got[i] != want {
-				t.Fatalf("transform %+v: vertex %d = %v, want %v", tf, i, got[i], want)
-			}
-		}
 	}
 }
 
@@ -307,78 +158,18 @@ func onBoundaryNotVertex(poly []geometry.Point, p geometry.Point) bool {
 	return false
 }
 
-// ---------------------------------------------------------------------------
-// Correctness: randomised checks against an independent reference
-// ---------------------------------------------------------------------------
-
-func TestChanMatchesReferenceOnRandomInputs(t *testing.T) {
-	generators := map[string]func(int, int64) []geometry.Point{
-		"square": uniformSquare,
-		"disk":   uniformDisk,
-		"circle": onCircle,
-		"polygon-12": func(n int, seed int64) []geometry.Point {
-			return polygonWithInterior(max(n, 12), 12, seed)
-		},
-		"grid": func(n int, seed int64) []geometry.Point {
-			// Integer grid: heavy duplication and many exactly collinear points.
-			r := rand.New(rand.NewSource(seed))
-			out := make([]geometry.Point, n)
-			for i := range out {
-				out[i] = geometry.Point{X: float64(r.Intn(12)), Y: float64(r.Intn(12))}
-			}
-			return out
-		},
-	}
-	sizes := []int{1, 2, 3, 4, 5, 8, 16, 17, 50, 200, 1000, 5000}
-	for name, gen := range generators {
-		for _, n := range sizes {
-			for seed := int64(0); seed < 15; seed++ {
-				input := gen(n, seed)
-				got, stats := chanHull(input)
-				assertValidHull(t, input, got)
-				if want := referenceHull(input); !sameHull(got, want) {
-					t.Fatalf("%s n=%d seed=%d:\n got %v\nwant %v", name, n, seed, got, want)
-				}
-				// Without duplicate points, the binary search should always succeed on its own.
-				if name != "grid" && stats.Fallbacks != 0 {
+// Without duplicate points the binary-search tangent should always succeed on
+// its own, never dropping to the linear fallback.
+func TestChanTangentNeverFallsBackWithoutDuplicates(t *testing.T) {
+	for name, gen := range randomGenerators() {
+		if name == "grid" {
+			continue // duplicates are expected to trigger the fallback
+		}
+		for _, n := range []int{5, 50, 1000, 5000} {
+			for seed := int64(0); seed < 10; seed++ {
+				if _, stats := chanHull(gen(n, seed)); stats.Fallbacks != 0 {
 					t.Fatalf("%s n=%d seed=%d: %d tangent fallbacks", name, n, seed, stats.Fallbacks)
 				}
-			}
-		}
-	}
-}
-
-func TestChanOnAllDatasetKinds(t *testing.T) {
-	for _, kind := range []string{"uniform", "clustered", "circular", "collinear"} {
-		for _, n := range []int{0, 1, 2, 3, 10, 100, 1000, dataset.MaxPoints} {
-			input, err := dataset.Generate(kind, n, 42)
-			if err != nil {
-				t.Fatal(err)
-			}
-			hull := ChansAlgorithm{}.Compute(input).Hull
-			assertValidHull(t, input, hull)
-			if kind == "collinear" {
-				// Points are on y = 0.5x + 25 only up to rounding, so the exact vertex
-				// count depends on rounding noise. The hull must be a thin sliver along the line.
-				for _, p := range hull {
-					if off := math.Abs(p.Y - (0.5*p.X + 25)); off > 1e-9 {
-						t.Fatalf("collinear n=%d: hull vertex %v is %.2g off the line", n, p, off)
-					}
-				}
-			}
-		}
-	}
-}
-
-// Chan's algorithm and Graham scan follow the same output contract, so they must agree exactly.
-func TestChanAgreesWithGrahamScan(t *testing.T) {
-	for _, kind := range []string{"uniform", "clustered", "circular"} {
-		for seed := int64(1); seed <= 10; seed++ {
-			input, _ := dataset.Generate(kind, 5000, seed)
-			c := ChansAlgorithm{}.Compute(input).Hull
-			g := GrahamScan{}.Compute(input).Hull
-			if !sameHull(c, g) {
-				t.Fatalf("%s seed=%d: chan has %d vertices, graham has %d", kind, seed, len(c), len(g))
 			}
 		}
 	}
@@ -395,8 +186,6 @@ func chanOps(points []geometry.Point) chanStats {
 	_, stats := chanHull(points)
 	return stats
 }
-
-func log2(x int) float64 { return math.Log2(float64(x)) }
 
 // The defining property: with h fixed, the work is linear in n, not n log n.
 func TestChanWorkIsLinearInNForFixedHullSize(t *testing.T) {
@@ -518,18 +307,6 @@ func TestChanMemoryIsProportionalToInput(t *testing.T) {
 // runs and wide margins so it stays stable on busy machines)
 // ---------------------------------------------------------------------------
 
-func bestTime(runs int, f func()) time.Duration {
-	best := time.Duration(math.MaxInt64)
-	for i := 0; i < runs; i++ {
-		start := time.Now()
-		f()
-		if d := time.Since(start); d < best {
-			best = d
-		}
-	}
-	return best
-}
-
 func TestChanRuntimeIsLinearForFixedHullSize(t *testing.T) {
 	if testing.Short() {
 		t.Skip("timing test skipped in -short mode")
@@ -568,58 +345,7 @@ func TestChanFasterThanGrahamScanWhenHullIsSmall(t *testing.T) {
 // Benchmarks: go test ./internal/algorithms -run '^$' -bench . -benchmem
 // ---------------------------------------------------------------------------
 
-func BenchmarkChan(b *testing.B) {
-	benchmarkHull(b, ChansAlgorithm{})
-}
-
-// Same inputs as BenchmarkChan, for side-by-side comparison.
-func BenchmarkGrahamScan(b *testing.B) {
-	benchmarkHull(b, GrahamScan{})
-}
-
-func benchmarkHull(b *testing.B, alg ConvexHullAlgorithm) {
-	generators := []struct {
-		name string
-		gen  func(int, int64) []geometry.Point
-	}{
-		{"square", uniformSquare},
-		{"disk", uniformDisk},
-		{"circle", onCircle},
-		{"16-gon", func(n int, seed int64) []geometry.Point { return polygonWithInterior(n, 16, seed) }},
-		{"clustered", func(n int, seed int64) []geometry.Point {
-			p, _ := dataset.Generate("clustered", n, seed)
-			return p
-		}},
-	}
-	for _, g := range generators {
-		for _, n := range []int{100, 1000, 10000, 100000} {
-			if g.name == "clustered" && n > dataset.MaxPoints {
-				continue
-			}
-			input := g.gen(n, 1)
-			b.Run(fmt.Sprintf("%s/n=%d", g.name, n), func(b *testing.B) {
-				b.ReportAllocs()
-				var hull int
-				for i := 0; i < b.N; i++ {
-					hull = len(alg.Compute(input).Hull)
-				}
-				b.ReportMetric(float64(hull), "hull-vertices")
-				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(n), "ns/point")
-			})
-		}
-	}
-}
+func BenchmarkChan(b *testing.B) { benchmarkHull(b, ChansAlgorithm{}, 0) }
 
 // Fixed n, growing h: shows the log h dependence directly.
-func BenchmarkChanByHullSize(b *testing.B) {
-	const n = 100000
-	for _, h := range []int{8, 64, 512, 4096, 32768} {
-		input := polygonWithInterior(n, h, 1)
-		b.Run(fmt.Sprintf("h=%d", h), func(b *testing.B) {
-			b.ReportAllocs()
-			for i := 0; i < b.N; i++ {
-				ChansAlgorithm{}.Compute(input)
-			}
-		})
-	}
-}
+func BenchmarkChanByHullSize(b *testing.B) { benchmarkByHullSize(b, ChansAlgorithm{}) }
