@@ -2,7 +2,6 @@ package algorithms
 
 import (
 	"fmt"
-	"math"
 	"sort"
 
 	"github.com/ali/convex-hull-advanced-algorithms/internal/geometry"
@@ -35,16 +34,16 @@ func (GrahamScan) Compute(points []geometry.Point) Result {
 		return result
 	}
 
+	// Sort by angle around the pivot without trigonometry. The pivot is the
+	// lowest point, so every other point lies in the half-plane above it, and
+	// a comes before b exactly when pivot -> a -> b is a left turn. Points at
+	// the same angle are ordered closest first.
 	sort.Slice(unique, func(i, j int) bool {
 		left, right := unique[i], unique[j]
-		leftAngle := math.Atan2(left.Y-pivot.Y, left.X-pivot.X)
-		rightAngle := math.Atan2(right.Y-pivot.Y, right.X-pivot.X)
-		if leftAngle != rightAngle {
-			return leftAngle < rightAngle
+		if turn := CrossProduct(pivot, left, right); turn != 0 {
+			return turn > 0
 		}
-		leftDistance := math.Hypot(left.X-pivot.X, left.Y-pivot.Y)
-		rightDistance := math.Hypot(right.X-pivot.X, right.Y-pivot.Y)
-		return leftDistance < rightDistance
+		return squaredDistance(pivot, left) < squaredDistance(pivot, right)
 	})
 
 	hull := make([]geometry.Point, 0, len(unique)+1)
@@ -75,4 +74,9 @@ func FindPivot(points []geometry.Point) (geometry.Point, error) {
 		}
 	}
 	return pivot, nil
+}
+
+func squaredDistance(a, b geometry.Point) float64 {
+	dx, dy := b.X-a.X, b.Y-a.Y
+	return dx*dx + dy*dy
 }

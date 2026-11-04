@@ -1,0 +1,26 @@
+2026/11/04 23:13:47 experiment 1: uniform n=100
+2026/11/04 23:13:51 experiment 1: uniform n=500
+2026/11/04 23:13:53 experiment 1: uniform n=1000
+2026/11/04 23:13:56 experiment 1: uniform n=5000
+2026/11/04 23:13:58 experiment 1: uniform n=10000
+2026/11/04 23:14:00 experiment 1: circular n=100
+2026/11/04 23:14:03 experiment 1: circular n=500
+2026/11/04 23:14:06 experiment 1: circular n=1000
+2026/11/04 23:14:08 experiment 1: circular n=5000
+2026/11/04 23:14:10 experiment 1: circular n=10000
+2026/11/04 23:14:12 experiment 1: clustered n=100
+2026/11/04 23:14:15 experiment 1: clustered n=500
+2026/11/04 23:14:18 experiment 1: clustered n=1000
+2026/11/04 23:14:20 experiment 1: clustered n=5000
+2026/11/04 23:14:22 experiment 1: clustered n=10000
+2026/11/04 23:14:24 experiment 1: collinear n=100
+2026/11/04 23:14:27 experiment 1: collinear n=500
+2026/11/04 23:14:29 experiment 1: collinear n=1000
+2026/11/04 23:14:32 experiment 1: collinear n=5000
+2026/11/04 23:14:34 experiment 1: collinear n=10000
+2026/11/04 23:14:36 experiment 2: n=100000 h=8
+2026/11/04 23:14:39 experiment 2: n=100000 h=64
+2026/11/04 23:14:42 experiment 2: n=100000 h=512
+2026/11/04 23:14:44 experiment 2: n=100000 h=4096
+2026/11/04 23:14:49 experiment 2: n=100000 h=100000
+2026/11/04 23:14:51 wrote 222 trials to report/results.csv
