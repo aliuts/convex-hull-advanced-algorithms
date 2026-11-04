@@ -1,6 +1,6 @@
-# HullLab — Convex Hull Algorithm Comparison
+# Convex Hull Algorithm Comparison
 
-A Go-backed, browser-based workspace for exploring and benchmarking Graham Scan, Jarvis March (Gift Wrapping), QuickHull, and Chan's algorithm. Graham Scan, Jarvis March, and Chan's algorithm are implemented; QuickHull is still a stub that returns an explicit `not_implemented` status.
+A Go server and a small browser page for comparing three convex hull algorithms: Graham Scan, Jarvis March (Gift Wrapping), and Chan's algorithm.
 
 ## Requirements
 
@@ -21,12 +21,11 @@ Open [http://localhost:8080](http://localhost:8080). Set `ADDR` to change the li
 
 ## Features
 
-- Click the coordinate plane to add points; drag to move and right-click to delete.
-- Generate deterministic uniform, clustered, circular, or collinear point sets by count and seed.
-- Run an individual algorithm or compare them all against a shared input snapshot.
-- View runtime, input size, hull vertex count, and explicit implementation status.
-- Run multi-size benchmark trials (100, 500, 1,000, and 5,000 points; three trials per size by default).
-- Implemented hull results automatically draw as a polygon in the plane.
+- Generate uniform, clustered, circular, or collinear point sets from a count and seed (the same seed always gives the same points).
+- Click the plane to add a point; right-click to remove one.
+- Run one algorithm or compare them all on the same points, and see each one's runtime and hull size.
+- The hull is drawn over the points.
+- Multi-size benchmark trials are available through the `/api/benchmark` endpoint.
 
 ## HTTP API
 
@@ -39,7 +38,7 @@ All request and response bodies use JSON.
 | `/api/run` | POST | Run `{ "algorithm": "all", "points": [{"x":1,"y":2}] }` |
 | `/api/benchmark` | POST | Run `{ "sizes": [100,500], "kind": "uniform", "seed": 42, "trials": 3, "algorithm": "all" }` |
 
-Algorithm identifiers are `graham_scan`, `jarvis_march`, `quickhull`, and `chan`; use `all` for the comparison. Run results contain `durationNs`, `durationMs`, `inputSize`, `hullVertices`, and an algorithm result. Stub responses have status `not_implemented` and no hull.
+Algorithm identifiers are `graham_scan`, `jarvis_march`, and `chan`; use `all` for the comparison. Run results contain `durationNs`, `durationMs`, `inputSize`, `hullVertices`, and an algorithm result.
 
 ## Project layout
 
@@ -50,12 +49,12 @@ internal/geometry/     Point and hull types
 internal/api/           HTTP routing, validation, and JSON endpoints
 internal/benchmark/     Timing and repeated multi-size trial orchestration
 internal/dataset/       Deterministic dataset generators
-web/                    Responsive frontend assets served by Go
+web/                    Single-page frontend served by Go
 ```
 
 ## Adding an algorithm
 
-Implement `algorithms.ConvexHullAlgorithm` in its own file. `Compute` should return the shared `algorithms.Result` with `Status: algorithms.StatusOK` and the hull points in boundary order (without repeating the first point). Register the type in `algorithms.All()`. API selection, comparison, rendering, and benchmark reporting use the shared interface and result contract. Keep input correctness validation in separate tests/validation paths rather than including it in timed computation.
+Implement `algorithms.ConvexHullAlgorithm` in its own file. `Compute` should return the shared `algorithms.Result` with `Status: algorithms.StatusOK` and the hull points in boundary order (without repeating the first point). Register the type in `algorithms.All()`; the API and the page's algorithm picker pick it up automatically (add a display name to `LABELS` in `web/app.js`). Run the shared correctness suite with `testHullContract` from `contract_test.go`. Keep input correctness validation in separate tests/validation paths rather than including it in timed computation.
 
 ## Jarvis March
 
