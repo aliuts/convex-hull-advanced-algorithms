@@ -6,6 +6,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/ali/convex-hull-advanced-algorithms/internal/dataset"
 	"github.com/ali/convex-hull-advanced-algorithms/internal/geometry"
 )
 
@@ -181,18 +182,9 @@ func onCircle(n int, seed int64) []geometry.Point {
 // polygonWithInterior returns a regular h-gon (radius 500) plus n-h random points
 // strictly inside it, so the hull has exactly h vertices however large n is.
 func polygonWithInterior(n, h int, seed int64) []geometry.Point {
-	r := rand.New(rand.NewSource(seed))
-	out := make([]geometry.Point, 0, n)
-	for i := 0; i < h; i++ {
-		a := 2 * math.Pi * float64(i) / float64(h)
-		out = append(out, geometry.Point{X: 500 + 500*math.Cos(a), Y: 500 + 500*math.Sin(a)})
+	points, err := dataset.PolygonWithInterior(n, h, seed)
+	if err != nil {
+		panic(err)
 	}
-	inner := 0.99 * 500 * math.Cos(math.Pi/float64(h)) // inside the polygon's inscribed circle
-	for len(out) < n {
-		a := r.Float64() * 2 * math.Pi
-		rad := inner * math.Sqrt(r.Float64())
-		out = append(out, geometry.Point{X: 500 + rad*math.Cos(a), Y: 500 + rad*math.Sin(a)})
-	}
-	r.Shuffle(len(out), func(i, j int) { out[i], out[j] = out[j], out[i] })
-	return out
+	return points
 }
