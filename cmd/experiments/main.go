@@ -11,7 +11,9 @@
 //
 // Timing uses benchmark.Run, the same code as the /api/benchmark endpoint: each
 // algorithm gets its own copy of the same points, and only the hull computation
-// is timed. Each table cell is the median over all trials.
+// is timed. Within a trial, each algorithm is repeated until at least 100 ms has
+// passed and the average is used, so the times are accurate even where the
+// system clock is coarse (Windows). Each table cell is the median over all trials.
 package main
 
 import (
@@ -57,7 +59,7 @@ func main() {
 	var rows [][]string // raw trials for the CSV
 	record := func(experiment, kind string, n, trial int, e benchmark.Entry) {
 		rows = append(rows, []string{experiment, kind, strconv.Itoa(n), strconv.Itoa(trial),
-			e.Result.Algorithm, strconv.Itoa(e.HullVertices), strconv.FormatInt(e.DurationNS, 10)})
+			e.Result.Algorithm, strconv.Itoa(e.HullVertices), strconv.FormatInt(e.DurationNS, 10), strconv.Itoa(e.Repeats)})
 	}
 
 	fmt.Printf("%s, %s/%s, %d CPU threads, %s\n", runtime.Version(), runtime.GOOS, runtime.GOARCH,
@@ -237,7 +239,7 @@ func writeCSV(path string, rows [][]string) error {
 		return err
 	}
 	w := csv.NewWriter(f)
-	w.Write([]string{"experiment", "kind", "n", "trial", "algorithm", "hull_vertices", "duration_ns"})
+	w.Write([]string{"experiment", "kind", "n", "trial", "algorithm", "hull_vertices", "duration_ns", "repeats"})
 	w.WriteAll(rows)
 	if err := w.Error(); err != nil {
 		f.Close()
