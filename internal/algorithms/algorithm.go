@@ -16,7 +16,4 @@ type ConvexHullAlgorithm interface {
 	Compute(points []geometry.Point) Result
 }
 
-const (
-	StatusOK             = "implemented"
-	StatusNotImplemented = "not_implemented"
-)
+const StatusOK = "implemented"
