@@ -89,6 +89,43 @@ func testHullContract(t *testing.T, alg ConvexHullAlgorithm, maxN int) {
 			}
 		}
 	})
+	t.Run("ExactCollinear", func(t *testing.T) {
+		// Integer points on a line: every cross product is computed exactly, so
+		// rounding can't excuse any result other than the two endpoints.
+		lines := map[string]func(k float64) geometry.Point{
+			"sloped":     func(k float64) geometry.Point { return geometry.Point{X: k, Y: 2*k + 3} },
+			"horizontal": func(k float64) geometry.Point { return geometry.Point{X: k, Y: 7} },
+			"vertical":   func(k float64) geometry.Point { return geometry.Point{X: 7, Y: k} },
+		}
+		r := rand.New(rand.NewSource(11))
+		for name, line := range lines {
+			for _, n := range []int{2, 3, 10, 100, 1000, 10000} {
+				input := make([]geometry.Point, n)
+				for i := range input {
+					input[i] = line(float64(r.Intn(2_000_001) - 1_000_000))
+				}
+				input = append(input, input[:n/4]...) // duplicates
+				r.Shuffle(len(input), func(a, b int) { input[a], input[b] = input[b], input[a] })
+
+				lo, hi := input[0], input[0]
+				for _, p := range input {
+					if lowerLeft(p, lo) {
+						lo = p
+					}
+					if lowerLeft(hi, p) {
+						hi = p
+					}
+				}
+				want := []geometry.Point{lo, hi}
+				if lo == hi {
+					want = want[:1]
+				}
+				if got := alg.Compute(input).Hull; !sameHull(got, want) {
+					t.Fatalf("%s n=%d: got %v, want endpoints %v", name, n, got, want)
+				}
+			}
+		}
+	})
 	t.Run("AllDatasetKinds", func(t *testing.T) {
 		for _, kind := range []string{"uniform", "clustered", "circular", "collinear"} {
 			for _, n := range []int{0, 1, 2, 3, 10, 100, 1000, dataset.MaxPoints} {
