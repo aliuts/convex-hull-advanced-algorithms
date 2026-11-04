@@ -240,19 +240,10 @@ func (c *chanState) tangentLinear(q []geometry.Point, p geometry.Point) int {
 	return best
 }
 
-// moreClockwise reports whether u ranks above v as seen from p: u is clockwise
-// of v, or in the same direction and farther. p itself ranks below everything.
+// moreClockwise is the shared ranking in jarvis.go, counted as one orientation test.
 func (c *chanState) moreClockwise(p, u, v geometry.Point) bool {
-	if u == p {
-		return false
-	}
-	if v == p {
-		return true
-	}
-	if o := c.cross(p, v, u); o != 0 {
-		return o < 0
-	}
-	return distSq(p, u) > distSq(p, v)
+	c.stats.Orientations++
+	return moreClockwise(p, u, v)
 }
 
 func (c *chanState) cross(o, a, b geometry.Point) float64 {
