@@ -64,6 +64,17 @@ Implement `algorithms.ConvexHullAlgorithm` in its own file. `Compute` should ret
 
 `internal/algorithms/chan.go` is output-sensitive: O(n log h), where h is the number of hull vertices. For a guessed hull size m it splits the points into groups of m, finds each group's hull with a monotone chain scan, then gift-wraps around all groups, finding each group's tangent point by binary search. If the hull doesn't close within m steps, m is squared (4, 16, 256, 65536, …) and it tries again.
 
+## Running the report's experiments
+
+```sh
+go run ./cmd/experiments                    # both experiments, 3 trials, markdown tables (~5 s)
+go run ./cmd/experiments -trials 25         # more trials for steadier medians
+go run ./cmd/experiments -csv results.csv   # also save every trial, e.g. for graphs
+go run ./cmd/experiments -h                 # all options
+```
+
+Experiment 1 runs every algorithm on the four dataset kinds at 100–10,000 points. Experiment 2 fixes n = 100,000 and varies the hull size h (8 to n) using a regular polygon with random interior points. Timing uses the same code as `/api/benchmark`, and each cell is the median over all trials.
+
 ## Tests and benchmarks
 
 ```sh
